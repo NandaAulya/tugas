@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSO Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-2xl font-bold text-center mb-6">Particle Swarm Optimization - Maximization</h1>
+        
+        <div class="flex justify-center mb-4">
+            <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Start Optimization
+            </button>
+        </div>
+
+        <div class="flex justify-center mb-6">
+            <div id="gbestFitness" class="text-lg font-semibold text-gray-800 mr-4">
+                Gbest Fitness: 
+            </div>
+            <div id="gbestPosition" class="text-lg font-semibold text-gray-800">
+                Gbest Position: 
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Table Section -->
+            <div>
+                <h2 class="text-xl font-semibold text-center mb-4">Particle Population</h2>
+                <table class="min-w-full bg-white rounded-lg shadow-lg">
+                    <thead>
+                        <tr>
+                            <th class="border-b p-2 text-left">Particle #</th>
+                            <th class="border-b p-2 text-left">Position</th>
+                            <th class="border-b p-2 text-left">Fitness</th>
+                            <th class="border-b p-2 text-left">Velocity</th>
+                            <th class="border-b p-2 text-left">Pbest</th>
+                            <th class="border-b p-2 text-left">Pbest Fitness</th>
+                        </tr>
+                    </thead>
+                    <tbody id="particleTableBody" class="text-gray-700"></tbody>
+                </table>
+            </div>
+
+            <!-- Chart Section -->
+            <div>
+                <h2 class="text-xl font-semibold text-center mb-4">Gbest Fitness Over Iterations</h2>
+                <canvas id="fitnessChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { maxProfit } from "./MaxProfit.js";
+        import { PSO } from "./pso.js";
+
+        const tableBody = document.getElementById("particleTableBody");
+        const gbestFitnessElement = document.getElementById("gbestFitness");
+        const gbestPositionElement = document.getElementById("gbestPosition");
+        const startButton = document.getElementById("startButton");
+        const fitnessChartCtx = document.getElementById("fitnessChart").getContext("2d");
+
+        const n_particle = 5;
+        const pso = new PSO(n_particle, 2, maxProfit);
+
+        let iteration = 0;
+        let gbestFitnessData = [];
+        let labels = [];
+
+        const fitnessChart = new Chart(fitnessChartCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Gbest Fitness',
+                    data: gbestFitnessData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { display: true, title: { display: true, text: 'Iterations' }},
+                    y: { display: true, title: { display: true, text: 'Fitness Value' }}
+                }
+            }
+        });
+
+        function updateTable() {
+            tableBody.innerHTML = "";
+            pso.particles.forEach((particle, index) => {
+                const row = `
+                    <tr>
+                        <td class="border p-2">${index + 1}</td>
+                        <td class="border p-2">${particle.position.map(p => p.toFixed(2)).join(",")}</td>
+                        <td class="border p-2">${particle.fitness.toFixed(2)}</td>
+                        <td class="border p-2">${particle.velocity.map(v => v.toFixed(2)).join(",")}</td>
+                        <td class="border p-2">${particle.pbest.map(pb => pb.toFixed(2)).join(",")}</td>
+                        <td class="border p-2">${particle.pbestFitness.toFixed(2)}</td>
+                    </tr>`;
+                tableBody.innerHTML += row;
+            });
+
+            gbestFitnessElement.textContent = `Gbest Fitness: ${pso.gbestFitness.toFixed(2)}`;
+            gbestPositionElement.textContent = `Gbest Position: [${pso.gbestPosition.map(gp => gp.toFixed(2)).join(", ")}]`;
+        }
+
+        function updateChart() {
+            labels.push(iteration);
+            gbestFitnessData.push(pso.gbestFitness);
+            fitnessChart.update();
+        }
+
+        function runPSOIterations() {
+            const maxIterations = 3;
+            const interval = setInterval(() => {
+                pso.mainPSO();
+                updateTable();
+                updateChart();
+                iteration++;
+
+                if (iteration >= maxIterations) {
+                    clearInterval(interval);
+                }
+            }, 500);
+        }
+
+        startButton.addEventListener('click', () => {
+            runPSOIterations();
+        });
+    </script>
+</body>
+</html>
